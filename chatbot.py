@@ -1,15 +1,21 @@
-from openai import OpenAI
+import openai
+import os
+from dotenv import load_dotenv
 
-client = OpenAI(api_key='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')
+# Load environment variables from .env file
+load_dotenv()
 
-
-
+# Set the API key for OpenAI
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_response():
-    response = client.chat.completions.create(model="gpt-3.5-turbo",  
-    messages=[{"role": "user", "content": "write me a joke"}],
-    max_tokens=100)
-    return response.choices[0].message.content.strip() + "hello"
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",  
+        messages=[{"role": "user", "content": "how are you?"}],
+        max_tokens=100
+    )
+
+    return response.choices[0].message.content.strip() 
 
 if __name__ == "__main__":
-    generate_response()
+    print(generate_response())
