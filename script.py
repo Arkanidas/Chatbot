@@ -22,7 +22,8 @@ def generate_response(user_message):
     return response.choices[0].message.content.strip() 
 
 if __name__ == "__main__":
-    user_input = input("skriv ditt meddelande:")
+# userinput är chattmeddelandet fån kunden 
+    user_input = "vad gör du idag älskade?"
     print(generate_response(user_input))
 
 
