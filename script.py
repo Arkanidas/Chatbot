@@ -3,12 +3,38 @@ import time
 import openai
 import os
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
+import requests
 
 load_dotenv()
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+def fetch_usermessage():
+    # URL of the third-party website
+    url = "https://agents.moderationinterface.com/chat/index"  
+
+    # Send a GET request to fetch the HTML content
+    response = requests.get(url)
+
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Parse the HTML content
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Find the <p> tag 
+        p_tag = soup.find_all('p', attrs={'_ngcontent-': True})
+        if p_tag:
+            latest_message = p_tag[-1].text.strip() 
+            print(latest_message) 
+        else:
+            return "No user messages found."
+    else:
+        return f"Failed to fetch the page. Status code: {response.status_code}"
+
+
+#generate a message from the gpt api
 def generate_response(user_message):
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",  
@@ -22,9 +48,30 @@ def generate_response(user_message):
     return response.choices[0].message.content.strip() 
 
 if __name__ == "__main__":
-# userinput är chattmeddelandet fån kunden 
-    user_input = "vad gör du idag älskade?"
-    print(generate_response(user_input))
+    message = fetch_usermessage()
+    print("Fetched message:", message)
+
+
+ # error handling for the fetched usermessage
+    if "Failed to fetch" not in message and "No usermessage was found." not in message:
+        gpt_response = generate_response(message)
+        print("GPT Response:", gpt_response)
+    else:
+        print("Skipping GPT generation due to fetch issue.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
