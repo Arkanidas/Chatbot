@@ -12,24 +12,32 @@ load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def fetch_usermessage():
-    # URL of the third-party website
+   
     url = "https://agents.moderationinterface.com/chat/index"  
 
-    # Send a GET request to fetch the HTML content
-    response = requests.get(url)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    }
+  
+    response = requests.get(url, headers=headers)
 
-    # Check if the request was successful
+ 
     if response.status_code == 200:
-        # Parse the HTML content
+
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Find the <p> tag 
         p_tag = soup.find_all('p', attrs={'_ngcontent-': True})
+        print("the user message RAW1:", response.text)
+        print("the user message RAW2:", [p.text for p in p_tag])
+        
         if p_tag:
             latest_message = p_tag[-1].text.strip() 
-            print(latest_message) 
+            print("användare:" + latest_message )
+            return latest_message 
+            
         else:
-            return "No user messages found."
+            return "No user messages found." 
+            
     else:
         return f"Failed to fetch the page. Status code: {response.status_code}"
 
@@ -50,12 +58,14 @@ def generate_response(user_message):
 if __name__ == "__main__":
     message = fetch_usermessage()
     print("Fetched message:", message)
+  
 
 
  # error handling for the fetched usermessage
     if "Failed to fetch" not in message and "No usermessage was found." not in message:
         gpt_response = generate_response(message)
-        print("GPT Response:", gpt_response)
+        print("Kvinnan:", gpt_response)
+       
     else:
         print("Skipping GPT generation due to fetch issue.")
 
