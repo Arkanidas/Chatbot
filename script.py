@@ -3,43 +3,69 @@ import time
 import openai
 import os
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
-import requests
+from selenium import webdriver
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+
 
 load_dotenv()
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+url = "https://agents.moderationinterface.com/chat/index"
+
 def fetch_usermessage():
+    latest_message = None 
+    
+    options = Options()
+    options.set_capability("moz:firefoxOptions", {"args": ["--remote-debugging-port=9222"]})
+
+
+    driver = webdriver.Remote(
+        command_executor='http://localhost:9222',  # The URL to connect to the running Firefox instance
+        options=options
+    )
+
    
-    url = "https://agents.moderationinterface.com/chat/index"  
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-    }
-  
-    response = requests.get(url, headers=headers)
+    try:
+        print("Waiting for user to load the page...")
 
- 
-    if response.status_code == 200:
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        p_tag = soup.find_all('p', attrs={'_ngcontent-': True})
-        print("the user message RAW1:", response.text)
-        print("the user message RAW2:", [p.text for p in p_tag])
+        # Open the page
+        driver.get(url)
         
-        if p_tag:
-            latest_message = p_tag[-1].text.strip() 
-            print("användare:" + latest_message )
-            return latest_message 
-            
+        # Wait for the page to load and verify the URL
+        time.sleep(2)  # Adjust as necessary to ensure page has loaded
+        current_url = driver.current_url
+
+        if current_url != url:
+            print("Error: Not on the expected chat page.")
+            return None
+
+        # Wait until at least one <p> tag with _ngcontent attribute appears
+        wait = WebDriverWait(driver, 30)  # Wait up to 30 seconds
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "p[_ngcontent-]")))
+
+        # Find all <p> elements with _ngcontent attribute
+        p_tags = driver.find_elements(By.CSS_SELECTOR, "p[_ngcontent-]")
+
+        # Get the last message
+        if p_tags:
+            latest_message = p_tags[-1].text.strip()
+            print("User message:", latest_message)
+            return latest_message
         else:
-            return "No user messages found." 
-            
-    else:
-        return f"Failed to fetch the page. Status code: {response.status_code}"
+            print("No user messages found.")
+            return None
+    finally:
+        print("User message:", latest_message)
+
+
 
 
 #generate a message from the gpt api
@@ -62,7 +88,7 @@ if __name__ == "__main__":
 
 
  # error handling for the fetched usermessage
-    if "Failed to fetch" not in message and "No usermessage was found." not in message:
+    if "No user messages found." not in message:
         gpt_response = generate_response(message)
         print("Kvinnan:", gpt_response)
        
